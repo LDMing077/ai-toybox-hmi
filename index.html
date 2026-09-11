@@ -876,6 +876,21 @@
         </button>
       </section>
 
+      <section class="view view--sound" data-view="sound" data-active="false" aria-label="个性音效首页">
+        <img
+          class="design-layer"
+          src="./asset/images/personal-sound-home.png"
+          alt="个性音效首页，当前功能正在施工中"
+          draggable="false"
+        />
+        <button class="hotspot hotspot--back" type="button" data-action="sound-back" aria-label="返回 AI 玩具箱首页">
+          <span class="entry-label">返回</span>
+        </button>
+        <button class="hotspot hotspot--info" type="button" data-action="sound-info" aria-label="查看个性音效说明">
+          <span class="entry-label">说明</span>
+        </button>
+      </section>
+
       <section class="view view--egg" data-view="egg" data-active="false" aria-label="全屏彩蛋首页">
         <img
           class="design-layer"
@@ -1547,7 +1562,7 @@
 
       function renderRoute() {
         const requestedView = location.hash.replace(/^#\//, "").split(/[?#]/)[0];
-        currentView = ["pet", "egg"].includes(requestedView) ? requestedView : "home";
+        currentView = ["pet", "egg", "sound"].includes(requestedView) ? requestedView : "home";
         if (currentView !== "egg" && previewRunning) stopPreviewSequence();
         if (currentView !== "egg" && keyboardOpen) closeEggKeyboard(false);
         views.forEach((view) => {
@@ -1572,6 +1587,8 @@
             document.querySelector('[data-action="back"]').focus({ preventScroll: true });
           } else if (route === "pet") {
             document.querySelector('[data-action="pet-back"]').focus({ preventScroll: true });
+          } else if (route === "sound") {
+            document.querySelector('[data-action="sound-back"]').focus({ preventScroll: true });
           } else {
             setActive(1);
           }
@@ -1590,7 +1607,7 @@
       function openRoute(entry) {
         const route = entry.dataset.route;
         const label = labels[route];
-        if (["pet", "egg"].includes(route)) {
+        if (["pet", "egg", "sound"].includes(route)) {
           goTo(route);
           return;
         }
@@ -1621,8 +1638,12 @@
 
       document.querySelector('[data-action="back"]').addEventListener("click", () => goTo(""));
       document.querySelector('[data-action="pet-back"]').addEventListener("click", () => goTo(""));
+      document.querySelector('[data-action="sound-back"]').addEventListener("click", () => goTo(""));
       document.querySelector('[data-action="pet-info"]').addEventListener("click", () => {
         showToast("萌宠说明 · 内容待接入");
+      });
+      document.querySelector('[data-action="sound-info"]').addEventListener("click", () => {
+        showToast("个性音效说明 · 内容待接入");
       });
       document.querySelector('[data-action="info"]').addEventListener("click", () => {
         showToast("全屏彩蛋说明 · 内容待接入");
@@ -1707,7 +1728,7 @@
             goTo("");
           }
         }
-        if (currentView === "pet" && ["Escape", "Backspace"].includes(event.key)) {
+        if (["pet", "sound"].includes(currentView) && ["Escape", "Backspace"].includes(event.key)) {
           event.preventDefault();
           goTo("");
         }
