@@ -61,6 +61,29 @@
         -webkit-user-drag: none;
       }
 
+      .privacy-blur {
+        position: absolute;
+        left: 0;
+        z-index: 20;
+        width: 100%;
+        background: rgb(0 0 0 / 10%);
+        pointer-events: none;
+      }
+
+      .privacy-blur--status {
+        top: 0;
+        height: 6.944444%;
+        -webkit-backdrop-filter: blur(0.390625cqw);
+        backdrop-filter: blur(0.390625cqw);
+      }
+
+      .privacy-blur--dock {
+        bottom: 0;
+        height: 10%;
+        -webkit-backdrop-filter: blur(0.78125cqw);
+        backdrop-filter: blur(0.78125cqw);
+      }
+
       .view {
         position: absolute;
         inset: 0;
@@ -987,6 +1010,9 @@
 
         <div class="celebration-layer preview-celebration-layer" aria-hidden="true"></div>
       </section>
+
+      <div class="privacy-blur privacy-blur--status" aria-hidden="true"></div>
+      <div class="privacy-blur privacy-blur--dock" aria-hidden="true"></div>
 
       <div class="toast" role="status" aria-live="polite"></div>
     </main>
