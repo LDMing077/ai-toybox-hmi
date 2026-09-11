@@ -1,0 +1,1724 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#111317" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23111317'/%3E%3Cpath d='M16 35c0-12 8-21 18-21 9 0 16 7 16 16 0 11-9 20-21 20H16V35Z' fill='%2378a7ff'/%3E%3Ccircle cx='29' cy='31' r='4' fill='white'/%3E%3Ccircle cx='41' cy='31' r='4' fill='white'/%3E%3C/svg%3E" />
+    <title>AI 玩具箱</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      :root {
+        color-scheme: dark;
+        font-family: "VOYAH Sans", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+        background: #050607;
+      }
+
+      html,
+      body {
+        width: 100%;
+        min-height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #050607;
+      }
+
+      p {
+        margin: 0;
+      }
+
+      body {
+        display: grid;
+        min-height: 100svh;
+        place-items: center;
+      }
+
+      .car-screen {
+        position: relative;
+        width: min(100vw, calc(100svh * 16 / 9));
+        aspect-ratio: 16 / 9;
+        container-type: inline-size;
+        overflow: hidden;
+        background: #111317;
+        border-radius: clamp(0px, 1.5625vw, 40px);
+        box-shadow: 0 20px 80px rgb(0 0 0 / 45%);
+        isolation: isolate;
+      }
+
+      .design-layer {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        user-select: none;
+        -webkit-user-drag: none;
+      }
+
+      .view {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transform: scale(1.01);
+        transition:
+          opacity 180ms ease,
+          transform 180ms ease,
+          visibility 0s linear 180ms;
+      }
+
+      .view[data-active="true"] {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transform: scale(1);
+        transition-delay: 0s;
+      }
+
+      .entry {
+        position: absolute;
+        z-index: 2;
+        top: 32.4%;
+        width: 19.5%;
+        height: 38.6%;
+        padding: 0;
+        border: 0;
+        border-radius: 24%;
+        outline: none;
+        background: transparent;
+        cursor: pointer;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .entry--pet {
+        left: 14.1%;
+      }
+
+      .entry--egg {
+        left: 40.25%;
+      }
+
+      .entry--sound {
+        left: 66.45%;
+      }
+
+      .entry::before {
+        content: none;
+      }
+
+      .entry-icon-feedback {
+        position: absolute;
+        top: var(--icon-y);
+        left: var(--icon-x);
+        display: block;
+        width: var(--icon-w);
+        height: auto;
+        pointer-events: none;
+        user-select: none;
+        transform-origin: 50% 50%;
+        -webkit-user-drag: none;
+      }
+
+      .entry-icon-feedback {
+        opacity: 1;
+        filter: drop-shadow(0 0.15cqw 0.2cqw rgb(0 0 0 / 42%));
+        will-change: transform, filter, opacity;
+      }
+
+      .entry[data-pressed="true"] .entry-icon-feedback {
+        opacity: 1;
+        filter:
+          drop-shadow(0 0 clamp(1px, 0.1cqw, 2.5px) var(--glow-edge))
+          drop-shadow(0 0 clamp(3px, 0.32cqw, 8px) var(--glow-core))
+          drop-shadow(0 0 clamp(7px, 0.7cqw, 18px) var(--glow-soft))
+          drop-shadow(0 0 clamp(12px, 1.15cqw, 29px) var(--glow-haze));
+        animation: entry-icon-pop 100ms linear both;
+      }
+
+      .entry--pet .entry-icon-feedback {
+        --glow-edge: rgb(246 225 255 / 98%);
+        --glow-core: rgb(201 123 255 / 92%);
+        --glow-soft: rgb(153 74 255 / 66%);
+        --glow-haze: rgb(107 57 235 / 34%);
+      }
+
+      .entry--pet {
+        --icon-x: 10%;
+        --icon-y: 9%;
+        --icon-w: 80%;
+      }
+
+      .entry--egg .entry-icon-feedback {
+        --glow-edge: rgb(255 233 202 / 98%);
+        --glow-core: rgb(255 166 91 / 94%);
+        --glow-soft: rgb(255 105 49 / 70%);
+        --glow-haze: rgb(231 74 25 / 36%);
+      }
+
+      .entry--egg {
+        --icon-x: 10%;
+        --icon-y: 9%;
+        --icon-w: 80%;
+      }
+
+      .entry--sound .entry-icon-feedback {
+        --glow-edge: rgb(242 221 255 / 98%);
+        --glow-core: rgb(194 113 255 / 92%);
+        --glow-soft: rgb(137 67 255 / 68%);
+        --glow-haze: rgb(94 48 226 / 35%);
+      }
+
+      .entry--sound {
+        --icon-x: 10%;
+        --icon-y: 9%;
+        --icon-w: 80%;
+      }
+
+      .home-icon-field-cleaner {
+        position: absolute;
+        left: 0;
+        top: 34%;
+        z-index: 1;
+        width: 100%;
+        height: 31.5%;
+        overflow: hidden;
+        background: #111317;
+        pointer-events: none;
+      }
+
+      .home-icon-field-dots {
+        position: absolute;
+        top: 0;
+        display: block;
+        width: 25%;
+        height: 100%;
+        object-fit: fill;
+        opacity: 0.82;
+        user-select: none;
+        -webkit-user-drag: none;
+      }
+
+      .home-icon-field-dots:nth-child(1) {
+        left: 11.37%;
+      }
+
+      .home-icon-field-dots:nth-child(2) {
+        left: 37.46%;
+      }
+
+      .home-icon-field-dots:nth-child(3) {
+        left: 63.44%;
+      }
+
+      @keyframes entry-icon-pop {
+        0% {
+          opacity: 1;
+          transform: scale(1);
+          animation-timing-function: cubic-bezier(0.4, 0, 1, 1);
+        }
+        36% {
+          opacity: 1;
+          transform: scale(0.8);
+          animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+        }
+        75% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+          transform: scale(1.2);
+        }
+      }
+
+      .hotspot {
+        position: absolute;
+        z-index: 4;
+        padding: 0;
+        border: 0;
+        border-radius: 22%;
+        outline: none;
+        background: transparent;
+        cursor: pointer;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .hotspot::after {
+        content: none;
+      }
+
+      .hotspot--back {
+        left: 1.4%;
+        top: 5.2%;
+        width: 7.4%;
+        height: 12.5%;
+      }
+
+      .hotspot--info {
+        right: 1.4%;
+        top: 5.2%;
+        width: 7.4%;
+        height: 12.5%;
+      }
+
+      .hotspot--preview {
+        right: 5.3%;
+        top: 37.2%;
+        width: 11%;
+        height: 9.5%;
+        border-radius: 999px;
+      }
+
+      .hotspot--balloon-input {
+        left: 6.5625%;
+        top: 47.56944%;
+        width: 86.875%;
+        height: 38.88889%;
+        border-radius: 1.5625cqw;
+      }
+
+      .view--egg[data-keyboard="true"] .hotspot--preview,
+      .view--egg[data-keyboard="true"] .hotspot--balloon-input {
+        pointer-events: none;
+      }
+
+      .view--egg[data-keyboard="true"] > .design-layer,
+      .view--egg[data-keyboard="true"] > .balloon-stage,
+      .view--egg[data-keyboard="true"] > .celebration-layer {
+        visibility: hidden;
+      }
+
+      .egg-keyboard {
+        position: absolute;
+        inset: 0;
+        z-index: 7;
+        visibility: hidden;
+        overflow: hidden;
+        pointer-events: none;
+        transition: visibility 0s linear 240ms;
+      }
+
+      .egg-keyboard[data-active="true"] {
+        visibility: visible;
+        transition-delay: 0s;
+      }
+
+      .keyboard-state-slice {
+        position: absolute;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        user-select: none;
+        pointer-events: none;
+        -webkit-user-drag: none;
+        will-change: transform, opacity;
+      }
+
+      .keyboard-state-slice--content {
+        z-index: 0;
+        clip-path: inset(15.83333% 0 10% 0);
+        transform: translate3d(0, 0, 0);
+        transition: transform 230ms cubic-bezier(0.16, 0.78, 0.22, 1);
+      }
+
+      .keyboard-panel-backdrop {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 60%;
+        bottom: 10%;
+        z-index: 1;
+        background: #1d2025;
+        opacity: 0;
+        transform: translate3d(0, 100%, 0);
+        transition:
+          transform 230ms cubic-bezier(0.16, 0.78, 0.22, 1),
+          opacity 90ms ease;
+        pointer-events: none;
+        will-change: transform, opacity;
+      }
+
+      .keyboard-state-slice--lower {
+        z-index: 2;
+        opacity: 0;
+        transform: translate3d(0, 30%, 0);
+        transition:
+          transform 300ms cubic-bezier(0.18, 0.82, 0.2, 1),
+          opacity 180ms ease;
+      }
+
+      .keyboard-state-slice--keyboard-body {
+        clip-path: inset(63.33333% 33.82813% 13.33333% 6.32813%);
+        opacity: 1;
+      }
+
+      .keyboard-state-slice--shift-left {
+        clip-path: inset(63.33333% 29.14063% 13.33333% 67.10938%);
+      }
+
+      .keyboard-state-slice--shift-right {
+        clip-path: inset(63.33333% 68.51563% 13.33333% 27.73438%);
+      }
+
+      .egg-keyboard[data-active="true"] .keyboard-state-slice--content {
+        transform: translate3d(0, -29.51389%, 0);
+      }
+
+      .egg-keyboard[data-active="true"] .keyboard-panel-backdrop {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+
+      .egg-keyboard[data-active="true"][data-side="left"] .keyboard-state-slice--keyboard-body {
+        transform: translate3d(0, 0, 0);
+      }
+
+      .egg-keyboard[data-active="true"][data-side="right"] .keyboard-state-slice--keyboard-body {
+        transform: translate3d(27.5%, 0, 0);
+      }
+
+      .egg-keyboard[data-active="true"][data-side="left"] .keyboard-state-slice--shift-left {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+
+      .egg-keyboard[data-active="true"][data-side="right"] .keyboard-state-slice--shift-left {
+        opacity: 0;
+        transform: translate3d(-37.96875%, 0, 0);
+      }
+
+      .egg-keyboard[data-active="true"][data-side="left"] .keyboard-state-slice--shift-right {
+        opacity: 0;
+        transform: translate3d(40.9375%, 0, 0);
+      }
+
+      .egg-keyboard[data-active="true"][data-side="right"] .keyboard-state-slice--shift-right {
+        opacity: 1;
+        transform: translate3d(1.40625%, 0, 0);
+      }
+
+      .keyboard-state-slice--chrome {
+        z-index: 3;
+      }
+
+      .keyboard-state-slice--chrome-top {
+        clip-path: inset(0 0 84.16667% 0);
+      }
+
+      .keyboard-state-slice--chrome-dock {
+        clip-path: inset(90% 0 0 0);
+      }
+
+      .keyboard-key-layer {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        pointer-events: none;
+      }
+
+      .keyboard-key {
+        position: absolute;
+        padding: 0;
+        border: 0;
+        border-radius: 0.625cqw;
+        outline: none;
+        background: transparent;
+        cursor: pointer;
+        pointer-events: auto;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        transition: left 300ms cubic-bezier(0.18, 0.82, 0.2, 1);
+      }
+
+      .keyboard-key::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border: 1px solid rgb(169 208 255 / 0%);
+        border-radius: inherit;
+        background: rgb(99 158 255 / 0%);
+        box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0%);
+        transform: scale(1);
+        transition: 70ms ease;
+      }
+
+      .egg-keyboard[data-active="true"] .keyboard-key:is(:active, [data-pressed="true"])::after {
+        border-color: rgb(173 211 255 / 58%);
+        background: rgb(92 148 255 / 22%);
+        box-shadow: inset 0 0 0 1px rgb(255 255 255 / 16%);
+        transform: scale(0.94);
+      }
+
+      .keyboard-key[data-action="shift"]::after {
+        display: none;
+      }
+
+      .egg-keyboard[data-active="false"] .keyboard-key {
+        pointer-events: none;
+      }
+
+      .balloon-stage {
+        position: absolute;
+        left: 6.5625%;
+        top: 47.56944%;
+        z-index: 2;
+        width: 86.875%;
+        height: 38.88889%;
+        overflow: hidden;
+        border: clamp(1px, 0.078125cqw, 2px) solid rgb(255 255 255 / 20%);
+        border-radius: clamp(10px, 1.5625vw, 40px);
+        background-color: #07090c;
+        background-image:
+          linear-gradient(to top, rgb(0 75 133 / 20%), transparent 54%),
+          linear-gradient(45deg, #0c1118 25%, transparent 25%, transparent 75%, #0c1118 75%),
+          linear-gradient(45deg, #0c1118 25%, #07090c 25%, #07090c 75%, #0c1118 75%);
+        background-position:
+          0 0,
+          0 0,
+          3.636% 14.285%;
+        background-size:
+          100% 100%,
+          7.272% 28.57%,
+          7.272% 28.57%;
+      }
+
+      .keyboard-editor-stage {
+        position: absolute;
+        left: 6.5625%;
+        top: 47.56944%;
+        z-index: 2;
+        width: 86.875%;
+        height: 38.88889%;
+        overflow: hidden;
+        border: clamp(1px, 0.078125cqw, 2px) solid rgb(255 255 255 / 70%);
+        border-radius: clamp(10px, 1.5625vw, 40px);
+        background-color: #07090c;
+        background-image:
+          linear-gradient(to top, rgb(0 75 133 / 20%), transparent 54%),
+          linear-gradient(45deg, #0c1118 25%, transparent 25%, transparent 75%, #0c1118 75%),
+          linear-gradient(45deg, #0c1118 25%, #07090c 25%, #07090c 75%, #0c1118 75%);
+        background-position:
+          0 0,
+          0 0,
+          3.636% 14.285%;
+        background-size:
+          100% 100%,
+          7.272% 28.57%,
+          7.272% 28.57%;
+        pointer-events: auto;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        transform: translate3d(0, 0, 0);
+        transition: transform 230ms cubic-bezier(0.16, 0.78, 0.22, 1);
+        will-change: transform;
+      }
+
+      .egg-keyboard[data-active="true"] .keyboard-editor-stage {
+        transform: translate3d(0, -75.89286%, 0);
+      }
+
+      .keyboard-editor-cursor {
+        position: absolute;
+        left: 0;
+        top: 7.14286%;
+        z-index: 4;
+        width: 0.53957%;
+        height: 32.85714%;
+        border-radius: 999px;
+        background: rgb(255 255 255 / 70%);
+        box-shadow:
+          0 0 clamp(3px, 0.3125cqw, 8px) rgb(255 255 255 / 16%),
+          0 0 clamp(5px, 0.46875cqw, 12px) rgb(113 173 255 / 8%);
+        pointer-events: none;
+        will-change: opacity;
+        animation: editor-cursor-blink 1.05s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+
+      @keyframes editor-cursor-blink {
+        0%,
+        42% {
+          opacity: 1;
+        }
+        58%,
+        86% {
+          opacity: 0.16;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      .balloon-letter {
+        position: absolute;
+        left: var(--x);
+        top: var(--y);
+        z-index: 2;
+        display: block;
+        width: var(--w, 21.818%);
+        height: auto;
+        pointer-events: none;
+        user-select: none;
+        will-change: left, top, transform;
+        transition:
+          left 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+          top 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+          width 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        animation: letter-drift var(--duration, 6s) cubic-bezier(0.42, 0, 0.58, 1) var(--delay, 0s) infinite;
+      }
+
+      .confetti {
+        position: absolute;
+        z-index: 3;
+        width: 1.3%;
+        height: 2.1%;
+        border-radius: 999px;
+        background: var(--color);
+        transform: rotate(var(--rotate));
+        pointer-events: none;
+      }
+
+      .celebration-layer {
+        position: absolute;
+        inset: 0;
+        z-index: 3;
+        overflow: hidden;
+        pointer-events: none;
+      }
+
+      .preview-sequence {
+        position: absolute;
+        inset: 0;
+        z-index: 8;
+        overflow: hidden;
+        background: #111317;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition:
+          opacity 180ms ease,
+          visibility 0s linear 180ms;
+      }
+
+      .preview-sequence[data-active="true"] {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transition-delay: 0s;
+      }
+
+      .preview-sequence[data-active="true"][data-complete="true"] {
+        cursor: pointer;
+      }
+
+      .preview-base {
+        z-index: 0;
+      }
+
+      .preview-title-cleaner {
+        position: absolute;
+        left: 0;
+        top: 18%;
+        z-index: 1;
+        width: 100%;
+        height: 18%;
+        background:
+          radial-gradient(ellipse at 12% 0%, #0a0d17 0%, transparent 62%),
+          linear-gradient(100deg, #080a0d 0%, #090c13 64%, #080a0d 100%);
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 13%, #000 88%, transparent);
+        mask-image: linear-gradient(to bottom, transparent, #000 13%, #000 88%, transparent);
+      }
+
+      .preview-title {
+        position: absolute;
+        left: 5.46875%;
+        top: 21.94444%;
+        z-index: 4;
+        display: flex;
+        align-items: baseline;
+        color: rgb(255 255 255 / 92%);
+        font-size: clamp(17px, 4.6875cqw, 120px);
+        font-weight: 600;
+        line-height: 1.325;
+        letter-spacing: 0;
+        white-space: nowrap;
+      }
+
+      .preview-title-char {
+        display: inline-block;
+        opacity: 0;
+        filter: blur(clamp(1px, 0.195vw, 5px));
+        transform: translate3d(clamp(-12px, -0.469vw, -2px), 0, 0);
+      }
+
+      .preview-sequence[data-active="true"] .preview-title-char {
+        animation: title-character-reveal 360ms cubic-bezier(0.12, 0.78, 0.2, 1) var(--char-delay) forwards;
+      }
+
+      .preview-letters {
+        position: absolute;
+        inset: 0;
+        z-index: 3;
+        pointer-events: none;
+      }
+
+      .preview-letter-slot {
+        position: absolute;
+        left: var(--x);
+        top: var(--y);
+        width: var(--w);
+        opacity: 0;
+        transform: translate3d(0, 10.15625cqw, 0);
+        will-change: transform, opacity;
+      }
+
+      .preview-letter-slot > img {
+        display: block;
+        width: 100%;
+        height: auto;
+        user-select: none;
+        -webkit-user-drag: none;
+        will-change: transform;
+        animation: letter-drift var(--duration, 6s) cubic-bezier(0.42, 0, 0.58, 1) var(--delay, 0s) infinite;
+      }
+
+      .preview-sequence[data-letters="true"] .preview-letter-slot {
+        animation: balloon-rise 1.9s cubic-bezier(0.12, 0.78, 0.18, 1) var(--rise-delay, 0s) forwards;
+      }
+
+      .preview-celebration-layer {
+        z-index: 5;
+      }
+
+      .burst-confetti {
+        position: absolute;
+        left: var(--origin-x);
+        bottom: 9.5%;
+        width: var(--piece-w);
+        height: var(--piece-h);
+        border-radius: var(--piece-radius, 2px);
+        background: var(--piece-color);
+        box-shadow: 0 0 10px color-mix(in srgb, var(--piece-color) 42%, transparent);
+        opacity: 0;
+        will-change: transform, opacity;
+        animation: confetti-eject var(--flight-time) linear var(--launch-delay) forwards;
+      }
+
+      .burst-confetti--ambient {
+        bottom: 7%;
+        box-shadow: 0 0 6px color-mix(in srgb, var(--piece-color) 34%, transparent);
+      }
+
+      @keyframes title-character-reveal {
+        0% {
+          opacity: 0;
+          filter: blur(clamp(1px, 0.195vw, 5px));
+          transform: translate3d(clamp(-12px, -0.469vw, -2px), 0, 0);
+        }
+        100% {
+          opacity: 1;
+          filter: blur(0);
+          transform: translate3d(0, 0, 0);
+        }
+      }
+
+      @keyframes balloon-rise {
+        0% {
+          opacity: 0;
+          transform: translate3d(0, 10.15625cqw, 0);
+        }
+        12% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 1;
+          transform: translate3d(0, 0, 0);
+        }
+      }
+
+      @keyframes confetti-eject {
+        0% {
+          opacity: 0;
+          transform: translate3d(0, 20px, 0) rotate(0deg) scale(0.45);
+          animation-timing-function: cubic-bezier(0.08, 0.76, 0.16, 1);
+        }
+        8% {
+          opacity: 1;
+        }
+        52% {
+          opacity: 1;
+          transform: translate3d(var(--push-x), var(--rise-y), 0) rotate(var(--spin)) scale(1);
+          animation-timing-function: cubic-bezier(0.16, 0.72, 0.22, 1);
+        }
+        100% {
+          opacity: 0;
+          transform: translate3d(var(--fade-x), var(--fade-y), 0) rotate(var(--spin-end)) scale(0.92);
+        }
+      }
+
+      @keyframes letter-drift {
+        0%,
+        100% {
+          transform: translate3d(calc(var(--drift, 7px) * -0.45), 0, 0) rotate(calc(var(--tilt, 0.25deg) * -0.4));
+        }
+        48% {
+          transform: translate3d(var(--drift, 7px), 0, 0) rotate(var(--tilt, 0.25deg));
+        }
+        74% {
+          transform: translate3d(calc(var(--drift, 7px) * -0.15), 0, 0) rotate(calc(var(--tilt, 0.25deg) * -0.15));
+        }
+      }
+
+      .entry-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      .toast {
+        position: absolute;
+        left: 50%;
+        bottom: 12.5%;
+        z-index: 3;
+        display: flex;
+        align-items: center;
+        min-height: 3em;
+        padding: 0.75em 1.25em;
+        color: rgb(255 255 255 / 92%);
+        font-size: clamp(14px, 1.55vw, 40px);
+        line-height: 1.4;
+        white-space: nowrap;
+        background: rgb(43 48 57 / 86%);
+        border: 1px solid rgb(255 255 255 / 13%);
+        border-radius: 999px;
+        box-shadow: 0 12px 40px rgb(0 0 0 / 35%);
+        opacity: 0;
+        pointer-events: none;
+        transform: translate(-50%, 18px) scale(0.96);
+        transition: 180ms ease;
+        backdrop-filter: blur(20px);
+      }
+
+      .toast[data-visible="true"] {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          scroll-behavior: auto !important;
+          transition-duration: 0.01ms !important;
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="car-screen" aria-label="AI 玩具箱交互原型">
+      <section class="view view--home" data-view="home" data-active="true" aria-label="AI 玩具箱首页">
+        <img
+          class="design-layer"
+          src="./asset/images/ai-toybox-home.png"
+          alt="AI 玩具箱首页，包含萌宠、全屏彩蛋和个性音效三个入口"
+          draggable="false"
+        />
+
+        <div class="home-icon-field-cleaner" aria-hidden="true">
+          <img class="home-icon-field-dots" src="./asset/images/c37e7448efc0c3f518c1c5dc79b8c1ca0563719d13109-yYCJcn-18-04595.png" alt="" draggable="false" />
+          <img class="home-icon-field-dots" src="./asset/images/c37e7448efc0c3f518c1c5dc79b8c1ca0563719d13109-yYCJcn-15-20402.png" alt="" draggable="false" />
+          <img class="home-icon-field-dots" src="./asset/images/c37e7448efc0c3f518c1c5dc79b8c1ca0563719d13109-yYCJcn-15-20401.png" alt="" draggable="false" />
+        </div>
+
+        <button class="entry entry--pet" type="button" data-route="pet" aria-label="进入萌宠">
+          <img class="entry-icon-feedback" src="./asset/icons/entry-pet-v2.png" alt="" draggable="false" />
+          <span class="entry-label">萌宠</span>
+        </button>
+        <button class="entry entry--egg" type="button" data-route="egg" aria-label="进入全屏彩蛋">
+          <img class="entry-icon-feedback" src="./asset/icons/entry-egg-v2.png" alt="" draggable="false" />
+          <span class="entry-label">全屏彩蛋</span>
+        </button>
+        <button class="entry entry--sound" type="button" data-route="sound" aria-label="进入个性音效">
+          <img class="entry-icon-feedback" src="./asset/icons/entry-sound-v2.png" alt="" draggable="false" />
+          <span class="entry-label">个性音效</span>
+        </button>
+      </section>
+
+      <section class="view view--pet" data-view="pet" data-active="false" aria-label="定制萌宠首页">
+        <img
+          class="design-layer"
+          src="./asset/images/pet-home.png"
+          alt="定制萌宠首页"
+          draggable="false"
+        />
+        <button class="hotspot hotspot--back" type="button" data-action="pet-back" aria-label="返回 AI 玩具箱首页">
+          <span class="entry-label">返回</span>
+        </button>
+        <button class="hotspot hotspot--info" type="button" data-action="pet-info" aria-label="查看萌宠说明">
+          <span class="entry-label">说明</span>
+        </button>
+      </section>
+
+      <section class="view view--egg" data-view="egg" data-active="false" aria-label="全屏彩蛋首页">
+        <img
+          class="design-layer"
+          src="./asset/images/fullscreen-egg-home.png"
+          alt="全屏彩蛋首页，可自定义彩蛋唤醒词和气球字体"
+          draggable="false"
+        />
+        <div class="balloon-stage" aria-label="HAPPY NEW CAR DAY 气球字微动效">
+          <img class="balloon-letter" src="./asset/letters/H.png" alt="" style="--x: -2.455%; --y: -18.75%; --w: 21.818%; --duration: 6.4s; --delay: -1.8s; --drift: clamp(1px, 0.3125vw, 8px); --tilt: 0.28deg" />
+          <img class="balloon-letter" src="./asset/letters/A.png" alt="" style="--x: 8.909%; --y: -18.75%; --w: 21.818%; --duration: 5.7s; --delay: -4.2s; --drift: clamp(1px, 0.2734vw, 7px); --tilt: -0.22deg" />
+          <img class="balloon-letter" src="./asset/letters/P.png" alt="" style="--x: 19.136%; --y: -18.75%; --w: 21.818%; --duration: 6.9s; --delay: -2.9s; --drift: clamp(1px, 0.3516vw, 9px); --tilt: 0.2deg" />
+          <img class="balloon-letter" src="./asset/letters/P2.png" alt="" style="--x: 28.864%; --y: -18.75%; --w: 21.818%; --duration: 5.4s; --delay: -0.8s; --drift: clamp(1px, 0.2344vw, 6px); --tilt: -0.24deg" />
+          <img class="balloon-letter" src="./asset/letters/Y.png" alt="" style="--x: 39.318%; --y: -18.75%; --w: 21.818%; --duration: 6.1s; --delay: -3.7s; --drift: clamp(1px, 0.3125vw, 8px); --tilt: 0.18deg" />
+
+          <img class="balloon-letter" src="./asset/letters/N.png" alt="" style="--x: -2%; --y: 35.893%; --w: 20%; --duration: 5.9s; --delay: -2.1s; --drift: clamp(1px, 0.2734vw, 7px); --tilt: -0.2deg" />
+          <img class="balloon-letter" src="./asset/letters/E.png" alt="" style="--x: 7.545%; --y: 35.893%; --w: 20%; --duration: 6.7s; --delay: -5.1s; --drift: clamp(1px, 0.3125vw, 8px); --tilt: 0.22deg" />
+          <img class="balloon-letter" src="./asset/letters/W.png" alt="" style="--x: 17.364%; --y: 37.679%; --w: 19.455%; --duration: 5.5s; --delay: -1.2s; --drift: clamp(1px, 0.2344vw, 6px); --tilt: -0.18deg" />
+
+          <img class="balloon-letter" src="./asset/letters/c.png" alt="" style="--x: 32.409%; --y: 35.893%; --w: 20%; --duration: 6.6s; --delay: -4.6s; --drift: clamp(1px, 0.3516vw, 9px); --tilt: 0.24deg" />
+          <img class="balloon-letter" src="./asset/letters/A.png" alt="" style="--x: 41.045%; --y: 35.893%; --w: 20%; --duration: 5.8s; --delay: -3.2s; --drift: clamp(1px, 0.2734vw, 7px); --tilt: -0.2deg" />
+          <img class="balloon-letter" src="./asset/letters/R-2.png" alt="" style="--x: 50.864%; --y: 37.679%; --w: 19.455%; --duration: 6.3s; --delay: -0.4s; --drift: clamp(1px, 0.3125vw, 8px); --tilt: 0.2deg" />
+
+          <img class="balloon-letter" src="./asset/letters/D.png" alt="" style="--x: 65.591%; --y: 35.893%; --w: 20%; --duration: 5.6s; --delay: -3.9s; --drift: clamp(1px, 0.2734vw, 7px); --tilt: -0.2deg" />
+          <img class="balloon-letter" src="./asset/letters/A-2.png" alt="" style="--x: 75.136%; --y: 35.893%; --w: 20%; --duration: 6.8s; --delay: -1.6s; --drift: clamp(1px, 0.3516vw, 9px); --tilt: 0.23deg" />
+          <img class="balloon-letter" src="./asset/letters/Y-2.png" alt="" style="--x: 83.591%; --y: 37.679%; --w: 19.455%; --duration: 6s; --delay: -4.8s; --drift: clamp(1px, 0.2734vw, 7px); --tilt: -0.18deg" />
+
+          <i class="confetti" aria-hidden="true" style="left: 27%; top: 55%; --color: #48d9d2; --rotate: 18deg"></i>
+          <i class="confetti" aria-hidden="true" style="left: 30%; top: 73%; --color: #ffb31b; --rotate: 58deg"></i>
+          <i class="confetti" aria-hidden="true" style="left: 56%; top: 16%; --color: #63b9ff; --rotate: 40deg"></i>
+          <i class="confetti" aria-hidden="true" style="left: 61%; top: 25%; --color: #ffb31b; --rotate: 68deg"></i>
+          <i class="confetti" aria-hidden="true" style="left: 73%; top: 62%; --color: #4ad9cf; --rotate: 14deg"></i>
+          <i class="confetti" aria-hidden="true" style="left: 89%; top: 55%; --color: #4ad9cf; --rotate: -12deg"></i>
+        </div>
+        <div class="celebration-layer" aria-hidden="true"></div>
+        <button class="hotspot hotspot--back" type="button" data-action="back" aria-label="返回 AI 玩具箱首页">
+          <span class="entry-label">返回</span>
+        </button>
+        <button class="hotspot hotspot--info" type="button" data-action="info" aria-label="查看全屏彩蛋说明">
+          <span class="entry-label">说明</span>
+        </button>
+        <button class="hotspot hotspot--preview" type="button" data-action="preview" aria-label="预览全屏彩蛋">
+          <span class="entry-label">预览</span>
+        </button>
+        <button class="hotspot hotspot--balloon-input" type="button" data-action="balloon-input" aria-label="编辑气球字体">
+          <span class="entry-label">编辑气球字体</span>
+        </button>
+
+        <div class="egg-keyboard" data-active="false" data-side="left" aria-hidden="true" aria-label="气球字体输入键盘">
+          <img class="keyboard-state-slice keyboard-state-slice--content" src="./asset/images/fullscreen-egg-home.png" alt="" draggable="false" />
+          <div class="keyboard-panel-backdrop" aria-hidden="true"></div>
+          <img class="keyboard-state-slice keyboard-state-slice--lower keyboard-state-slice--keyboard-body" src="./asset/images/egg-keyboard-state.png?v=2" alt="" draggable="false" />
+          <img class="keyboard-state-slice keyboard-state-slice--lower keyboard-state-slice--shift-left" src="./asset/images/egg-keyboard-state.png?v=2" alt="" draggable="false" />
+          <img class="keyboard-state-slice keyboard-state-slice--lower keyboard-state-slice--shift-right" src="./asset/images/egg-keyboard-state-right.png" alt="" draggable="false" />
+          <div class="keyboard-editor-stage" aria-label="气球字体编辑区域">
+            <i class="confetti" aria-hidden="true" style="left: 27%; top: 55%; --color: #48d9d2; --rotate: 18deg"></i>
+            <i class="confetti" aria-hidden="true" style="left: 30%; top: 73%; --color: #ffb31b; --rotate: 58deg"></i>
+            <i class="confetti" aria-hidden="true" style="left: 56%; top: 16%; --color: #63b9ff; --rotate: 40deg"></i>
+            <i class="confetti" aria-hidden="true" style="left: 61%; top: 25%; --color: #ffb31b; --rotate: 68deg"></i>
+            <i class="confetti" aria-hidden="true" style="left: 73%; top: 62%; --color: #4ad9cf; --rotate: 14deg"></i>
+            <i class="confetti" aria-hidden="true" style="left: 89%; top: 55%; --color: #4ad9cf; --rotate: -12deg"></i>
+            <i class="keyboard-editor-cursor" aria-hidden="true"></i>
+          </div>
+          <img class="keyboard-state-slice keyboard-state-slice--chrome keyboard-state-slice--chrome-top" src="./asset/images/fullscreen-egg-home.png" alt="" draggable="false" />
+          <img class="keyboard-state-slice keyboard-state-slice--chrome keyboard-state-slice--chrome-dock" src="./asset/images/fullscreen-egg-home.png" alt="" draggable="false" />
+          <div class="keyboard-key-layer" aria-label="键盘按键"></div>
+          <output class="entry-label keyboard-value" aria-live="polite">HAPPY NEW CAR DAY</output>
+        </div>
+      </section>
+
+      <section class="preview-sequence" data-active="false" data-letters="false" data-complete="false" aria-hidden="true" aria-label="全屏彩蛋预览，动画完成后点击任意区域返回" role="button">
+        <img class="design-layer preview-base" src="./asset/images/egg-preview-base.png" alt="" draggable="false" />
+        <div class="preview-title-cleaner" aria-hidden="true"></div>
+        <p class="preview-title" aria-label="小红的同学小明，提车快乐"></p>
+
+        <div class="preview-letters" aria-label="HAPPY NEW CAR DAY 气球字">
+          <div class="preview-letter-slot" style="--x: 4.921875%; --y: 31.18056%; --w: 18.75%; --rise-delay: 0s"><img src="./asset/letters/H.png" alt="" style="--duration: 6.4s; --delay: -1.8s; --drift: clamp(1px, 0.3125vw, 8px); --tilt: 0.28deg" /></div>
+          <div class="preview-letter-slot" style="--x: 14.6875%; --y: 31.18056%; --w: 18.75%; --rise-delay: 0.03s"><img src="./asset/letters/A.png" alt="" style="--duration: 5.7s; --delay: -4.2s; --drift: clamp(1px, 0.2734vw, 7px); --tilt: -0.22deg" /></div>
+          <div class="preview-letter-slot" style="--x: 23.47656%; --y: 31.18056%; --w: 18.75%; --rise-delay: 0.07s"><img src="./asset/letters/P.png" alt="" style="--duration: 6.9s; --delay: -2.9s; --drift: clamp(1px, 0.3516vw, 9px); --tilt: 0.2deg" /></div>
+          <div class="preview-letter-slot" style="--x: 31.83594%; --y: 31.18056%; --w: 18.75%; --rise-delay: 0.1s"><img src="./asset/letters/P2.png" alt="" style="--duration: 5.4s; --delay: -0.8s; --drift: clamp(1px, 0.2344vw, 6px); --tilt: -0.24deg" /></div>
+          <div class="preview-letter-slot" style="--x: 40.82031%; --y: 31.18056%; --w: 18.75%; --rise-delay: 0.14s"><img src="./asset/letters/Y.png" alt="" style="--duration: 6.1s; --delay: -3.7s; --drift: clamp(1px, 0.3125vw, 8px); --tilt: 0.18deg" /></div>
+
+          <div class="preview-letter-slot" style="--x: 5.3125%; --y: 55.90278%; --w: 17.1875%; --rise-delay: 0.05s"><img src="./asset/letters/N.png" alt="" style="--duration: 5.9s; --delay: -2.1s; --drift: clamp(1px, 0.2734vw, 7px); --tilt: -0.2deg" /></div>
+          <div class="preview-letter-slot" style="--x: 13.51563%; --y: 55.90278%; --w: 17.1875%; --rise-delay: 0.09s"><img src="./asset/letters/E.png" alt="" style="--duration: 6.7s; --delay: -5.1s; --drift: clamp(1px, 0.3125vw, 8px); --tilt: 0.22deg" /></div>
+          <div class="preview-letter-slot" style="--x: 21.95313%; --y: 56.59722%; --w: 16.71875%; --rise-delay: 0.13s"><img src="./asset/letters/W.png" alt="" style="--duration: 5.5s; --delay: -1.2s; --drift: clamp(1px, 0.2344vw, 6px); --tilt: -0.18deg" /></div>
+
+          <div class="preview-letter-slot" style="--x: 34.88281%; --y: 55.90278%; --w: 17.1875%; --rise-delay: 0.08s"><img src="./asset/letters/c.png" alt="" style="--duration: 6.6s; --delay: -4.6s; --drift: clamp(1px, 0.3516vw, 9px); --tilt: 0.24deg" /></div>
+          <div class="preview-letter-slot" style="--x: 42.30469%; --y: 55.90278%; --w: 17.1875%; --rise-delay: 0.12s"><img src="./asset/letters/A.png" alt="" style="--duration: 5.8s; --delay: -3.2s; --drift: clamp(1px, 0.2734vw, 7px); --tilt: -0.2deg" /></div>
+          <div class="preview-letter-slot" style="--x: 50.74219%; --y: 56.59722%; --w: 16.71875%; --rise-delay: 0.16s"><img src="./asset/letters/R-2.png" alt="" style="--duration: 6.3s; --delay: -0.4s; --drift: clamp(1px, 0.3125vw, 8px); --tilt: 0.2deg" /></div>
+
+          <div class="preview-letter-slot" style="--x: 63.39844%; --y: 55.90278%; --w: 17.1875%; --rise-delay: 0.1s"><img src="./asset/letters/D.png" alt="" style="--duration: 5.6s; --delay: -3.9s; --drift: clamp(1px, 0.2734vw, 7px); --tilt: -0.2deg" /></div>
+          <div class="preview-letter-slot" style="--x: 71.60156%; --y: 55.90278%; --w: 17.1875%; --rise-delay: 0.14s"><img src="./asset/letters/A-2.png" alt="" style="--duration: 6.8s; --delay: -1.6s; --drift: clamp(1px, 0.3516vw, 9px); --tilt: 0.23deg" /></div>
+          <div class="preview-letter-slot" style="--x: 78.86719%; --y: 56.59722%; --w: 16.71875%; --rise-delay: 0.18s"><img src="./asset/letters/Y-2.png" alt="" style="--duration: 6s; --delay: -4.8s; --drift: clamp(1px, 0.2734vw, 7px); --tilt: -0.18deg" /></div>
+        </div>
+
+        <div class="celebration-layer preview-celebration-layer" aria-hidden="true"></div>
+      </section>
+
+      <div class="toast" role="status" aria-live="polite"></div>
+    </main>
+
+    <script>
+      const entries = [...document.querySelectorAll(".entry")];
+      const views = [...document.querySelectorAll(".view")];
+      const carScreen = document.querySelector(".car-screen");
+      const toast = document.querySelector(".toast");
+      const celebrationLayer = document.querySelector(".view--egg .celebration-layer");
+      const previewSequence = document.querySelector(".preview-sequence");
+      const previewTitle = document.querySelector(".preview-title");
+      const previewLetters = document.querySelector(".preview-letters");
+      const previewCelebrationLayer = document.querySelector(".preview-celebration-layer");
+      const eggView = document.querySelector(".view--egg");
+      const eggKeyboard = document.querySelector(".egg-keyboard");
+      const keyboardKeyLayer = document.querySelector(".keyboard-key-layer");
+      const keyboardValue = document.querySelector(".keyboard-value");
+      const keyboardEditorStage = document.querySelector(".keyboard-editor-stage");
+      const keyboardEditorCursor = document.querySelector(".keyboard-editor-cursor");
+      const balloonStage = document.querySelector(".balloon-stage");
+      const labels = { pet: "萌宠", egg: "全屏彩蛋", sound: "个性音效" };
+      let activeIndex = -1;
+      let currentView = "home";
+      let toastTimer;
+      let previewRunning = false;
+      let previewComplete = false;
+      let previewAmbientTimer;
+      let previewTimers = [];
+      let entryLocked = false;
+      let keyboardOpen = false;
+      let keyboardSide = "left";
+      let keyboardShifting = false;
+      let keyboardCloseTimer;
+      let balloonInputValue = "HAPPY NEW CAR DAY";
+      let balloonCursorIndex = balloonInputValue.length;
+      let balloonCursorLine = balloonCursorIndex > 9 ? 1 : 0;
+      let nextBalloonGlyphId = 0;
+      let balloonGlyphs = [...balloonInputValue].map((character, index) => ({
+        id: `balloon-glyph-${nextBalloonGlyphId++}`,
+        character,
+        variant: character === " " ? null : index % 4,
+      }));
+
+      const previewTitleText = "“小红的同学小明，提车快乐”";
+      const balloonAssetRoot = "./asset/balloon-alphabet/";
+      const balloonAssetMap = Object.fromEntries(
+        [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"].map((letter) => [
+          letter,
+          [1, 2, 3, 4].map((variant) => `${letter.toLowerCase()}${variant}@3x.png`),
+        ]),
+      );
+      const balloonSlotSize = 264;
+      const balloonSpaceSize = 80;
+      const balloonRowContentWidth = 2208;
+      const balloonAssetBoxSize = 264;
+      const balloonAssetBoxOffset = (balloonSlotSize - balloonAssetBoxSize) / 2;
+      const balloonPreviewOriginY = 509;
+      const balloonPreviewSecondRowGap = 56;
+      const balloonPreviewScale = 1.06;
+      const balloonPreviewOffsetY = 36;
+      const balloonRowHorizontalPadding = 8;
+      const balloonShortRowTracking = -20;
+      const balloonLongRowTracking = -26;
+      const balloonRowVerticalPadding = 8;
+      const balloonRowMinGap = 8;
+      const balloonFirstRowMaxLetters = 9;
+      const balloonFirstRowScaleBoost = 0.035;
+      const balloonMaxLetters = 18;
+      const balloonMaxGlyphs = 24;
+      const keyboardLayout = [
+        ...["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"].map((key, index) => ({ key, label: key, x: 162 + index * 132, y: 912, w: 108, h: 96 })),
+        { action: "backspace", label: "退格", x: 1482, y: 912, w: 212, h: 96 },
+        ...["A", "S", "D", "F", "G", "H", "J", "K", "L"].map((key, index) => ({ key, label: key, x: 254 + index * 132, y: 1032, w: 108, h: 96 })),
+        { action: "enter", label: "回车", x: 1442, y: 1032, w: 160, h: 96 },
+        ...["Z", "X", "C", "V", "B", "N", "M"].map((key, index) => ({ key, label: key, x: 478 + index * 132, y: 1152, w: 108, h: 96 })),
+        { action: "space", label: "空格", x: 162, y: 1152, w: 292, h: 96 },
+        { action: "confirm", label: "确认", x: 1402, y: 1152, w: 292, h: 96 },
+        { action: "shift", label: "键盘移到右侧", x: 1718, y: 912, w: 96, h: 336 },
+      ];
+
+      previewTitle.replaceChildren(
+        ...[...previewTitleText].map((character, index) => {
+          const span = document.createElement("span");
+          span.className = "preview-title-char";
+          span.textContent = character;
+          span.style.setProperty("--char-delay", `${220 + index * 58}ms`);
+          span.setAttribute("aria-hidden", "true");
+          return span;
+        }),
+      );
+
+      function setLogicalFrame(element, { x, y, w, h }) {
+        element.style.left = `${(x / 2560) * 100}%`;
+        element.style.top = `${(y / 1440) * 100}%`;
+        element.style.width = `${(w / 2560) * 100}%`;
+        element.style.height = `${(h / 1440) * 100}%`;
+      }
+
+      function pulseKeyboardKey(button) {
+        button.dataset.pressed = "false";
+        void button.offsetWidth;
+        button.dataset.pressed = "true";
+        setTimeout(() => {
+          button.dataset.pressed = "false";
+        }, 110);
+      }
+
+      function createBalloonLayout(glyphs = balloonGlyphs) {
+        const letters = [];
+        const cursorPositions = [];
+        const limitedGlyphs = glyphs.slice(0, balloonMaxGlyphs);
+        const firstSpaceIndex = limitedGlyphs.findIndex((glyph) => glyph.character === " ");
+        const breaksAtSpace = firstSpaceIndex >= 0 && firstSpaceIndex <= balloonFirstRowMaxLetters;
+        const firstLineEnd = breaksAtSpace
+          ? firstSpaceIndex
+          : Math.min(balloonFirstRowMaxLetters, limitedGlyphs.length);
+        const secondLineStart = breaksAtSpace ? firstSpaceIndex + 1 : firstLineEnd;
+        const rows = [
+          { line: 0, startIndex: 0, glyphs: limitedGlyphs.slice(0, firstLineEnd) },
+          { line: 1, startIndex: secondLineStart, glyphs: limitedGlyphs.slice(secondLineStart) },
+        ];
+
+        const rowMetrics = rows.map(({ glyphs: rowGlyphs }, rowIndex) => {
+          const letterCount = rowGlyphs.filter((glyph) => balloonAssetMap[glyph.character]).length;
+          const spaceCount = rowGlyphs.length - letterCount;
+          const baseScale = letterCount <= 6
+            ? 1.025 + Math.max(0, 6 - letterCount) * 0.01
+            : Math.max(0.72, 1 - (letterCount - 7) * 0.02);
+          const desiredScale = baseScale + (rowIndex === 0 && letterCount > 0 ? balloonFirstRowScaleBoost : 0);
+          const spaceScale = letterCount <= 6
+            ? Math.min(1.08, desiredScale)
+            : Math.max(0.5, 1 - (letterCount - 6) * 0.18);
+          const scaledSpaceSize = balloonSpaceSize * spaceScale;
+          const letterTracking = letterCount <= 6 ? balloonShortRowTracking : balloonLongRowTracking;
+          const letterPairCount = rowGlyphs.slice(1).reduce((count, glyph, index) => {
+            const previousGlyph = rowGlyphs[index];
+            return count + (balloonAssetMap[previousGlyph.character] && balloonAssetMap[glyph.character] ? 1 : 0);
+          }, 0);
+          const reservedWidth = spaceCount * scaledSpaceSize
+            + letterPairCount * letterTracking;
+          const fitScale = letterCount > 0
+            ? (balloonRowContentWidth - reservedWidth) / (letterCount * balloonSlotSize)
+            : 1;
+
+          return {
+            scale: Math.min(desiredScale, fitScale),
+            letterCount,
+            spaceSize: scaledSpaceSize,
+            letterTracking,
+          };
+        });
+
+        const hasSecondRow = rows[1].glyphs.length > 0 || breaksAtSpace;
+        if (hasSecondRow) {
+          const combinedHeight = rowMetrics.reduce((sum, metric) => sum + balloonSlotSize * metric.scale, 0);
+          const availableHeight = 560 - balloonRowVerticalPadding * 2 - balloonRowMinGap;
+          if (combinedHeight > availableHeight) {
+            const verticalFit = availableHeight / combinedHeight;
+            rowMetrics.forEach((metric) => {
+              metric.scale *= verticalFit;
+            });
+          }
+        }
+
+        rows.forEach(({ line, startIndex, glyphs: rowGlyphs }, rowIndex) => {
+          if (line === 1 && rowGlyphs.length === 0 && !breaksAtSpace) return;
+
+          const rowScale = rowMetrics[rowIndex].scale;
+          const scaledSlotSize = balloonSlotSize * rowScale;
+          const scaledSpaceSize = rowMetrics[rowIndex].spaceSize;
+          const tokenWidths = rowGlyphs.map((glyph) => glyph.character === " " ? scaledSpaceSize : scaledSlotSize);
+          const letterTracking = rowMetrics[rowIndex].letterTracking;
+          const y = hasSecondRow
+            ? line === 0
+              ? balloonRowVerticalPadding
+              : 560 - balloonRowVerticalPadding - scaledSlotSize
+            : 12;
+          let x = balloonRowHorizontalPadding;
+
+          rowGlyphs.forEach((glyph, column) => {
+            const index = startIndex + column;
+            cursorPositions.push({ index, line, x, y: y + (scaledSlotSize - 180) / 2 });
+            if (balloonAssetMap[glyph.character]) {
+              letters.push({
+                id: glyph.id,
+                character: glyph.character,
+                variant: glyph.variant ?? 0,
+                index,
+                line,
+                x,
+                y,
+                width: scaledSlotSize,
+              });
+            }
+            const nextGlyph = rowGlyphs[column + 1];
+            const isLetterPair = nextGlyph
+              && balloonAssetMap[glyph.character]
+              && balloonAssetMap[nextGlyph.character];
+            x += tokenWidths[column] + (isLetterPair ? letterTracking : 0);
+          });
+
+          cursorPositions.push({ index: startIndex + rowGlyphs.length, line, x, y: y + (scaledSlotSize - 180) / 2 });
+        });
+
+        return { letters, cursorPositions };
+      }
+
+      function renderBalloonLetters(target) {
+        const existingLetters = new Map(
+          [...target.querySelectorAll(".balloon-letter[data-glyph-id]")].map((letter) => [letter.dataset.glyphId, letter]),
+        );
+        target.querySelectorAll(".balloon-letter:not([data-glyph-id])").forEach((letter) => letter.remove());
+        const { letters } = createBalloonLayout();
+        const activeIds = new Set();
+
+        letters.forEach((item) => {
+          const variants = balloonAssetMap[item.character];
+          const image = existingLetters.get(item.id) || document.createElement("img");
+          activeIds.add(item.id);
+          image.className = "balloon-letter";
+          image.dataset.glyphId = item.id;
+          image.src = `${balloonAssetRoot}${variants[item.variant % variants.length]}`;
+          image.alt = "";
+          image.draggable = false;
+          image.style.left = `${((item.x + balloonAssetBoxOffset) / 2224) * 100}%`;
+          image.style.top = `${((item.y + balloonAssetBoxOffset) / 560) * 100}%`;
+          image.style.width = `${(item.width / 2224) * 100}%`;
+          image.style.setProperty("--duration", `${5.5 + (item.index % 5) * 0.28}s`);
+          image.style.setProperty("--delay", `${-0.7 - (item.index % 6) * 0.73}s`);
+          image.style.setProperty("--drift", "clamp(1px, 0.2734vw, 7px)");
+          image.style.setProperty("--tilt", `${item.index % 2 ? -0.2 : 0.22}deg`);
+          target.append(image);
+        });
+
+        existingLetters.forEach((letter, id) => {
+          if (!activeIds.has(id)) letter.remove();
+        });
+      }
+
+      function restartBalloonCursorBlink() {
+        keyboardEditorCursor.style.animation = "none";
+        void keyboardEditorCursor.offsetWidth;
+        keyboardEditorCursor.style.animation = "";
+      }
+
+      function positionBalloonCursor() {
+        const { cursorPositions } = createBalloonLayout();
+        const matches = cursorPositions.filter((position) => position.index === balloonCursorIndex);
+        const position = matches.find((candidate) => candidate.line === balloonCursorLine) || matches.at(-1) || cursorPositions.at(-1);
+        if (!position) return;
+        keyboardEditorCursor.style.left = `${(Math.min(2212, Math.max(0, position.x)) / 2224) * 100}%`;
+        keyboardEditorCursor.style.top = `${(position.y / 560) * 100}%`;
+        restartBalloonCursorBlink();
+      }
+
+      function renderBalloonContent() {
+        renderBalloonLetters(balloonStage);
+        renderBalloonLetters(keyboardEditorStage);
+        positionBalloonCursor();
+      }
+
+      function renderPreviewLetters() {
+        previewLetters.replaceChildren();
+        previewLetters.setAttribute("aria-label", `${balloonInputValue || "空"} 气球字`);
+        const { letters } = createBalloonLayout();
+
+        letters.forEach((item, visualIndex) => {
+          const variants = balloonAssetMap[item.character];
+
+          const slot = document.createElement("div");
+          slot.className = "preview-letter-slot";
+          const previewX = 168 + (item.x + balloonAssetBoxOffset) * balloonPreviewScale;
+          slot.style.setProperty("--x", `${(previewX / 2560) * 100}%`);
+          const basePreviewY = balloonPreviewOriginY
+            + item.y
+            + balloonAssetBoxOffset
+            + (item.line === 1 ? balloonPreviewSecondRowGap : 0);
+          const previewY = balloonPreviewOriginY
+            + (basePreviewY - balloonPreviewOriginY) * balloonPreviewScale
+            + balloonPreviewOffsetY;
+          slot.style.setProperty("--y", `${(previewY / 1440) * 100}%`);
+          slot.style.setProperty("--w", `${((item.width * balloonPreviewScale) / 2560) * 100}%`);
+          slot.style.setProperty("--rise-delay", `${Math.min(0.24, visualIndex * 0.028)}s`);
+
+          const image = document.createElement("img");
+          image.src = `${balloonAssetRoot}${variants[item.variant % variants.length]}`;
+          image.alt = "";
+          image.draggable = false;
+          image.style.setProperty("--duration", `${5.5 + (item.index % 5) * 0.28}s`);
+          image.style.setProperty("--delay", `${-0.7 - (item.index % 6) * 0.73}s`);
+          image.style.setProperty("--drift", "clamp(1px, 0.3125vw, 8px)");
+          image.style.setProperty("--tilt", `${item.index % 2 ? -0.2 : 0.22}deg`);
+          slot.append(image);
+          previewLetters.append(slot);
+        });
+      }
+
+      function setBalloonCursorFromPoint(clientX, clientY, stage = keyboardEditorStage) {
+        const rect = stage.getBoundingClientRect();
+        const localX = ((clientX - rect.left) / rect.width) * 2224;
+        const localY = ((clientY - rect.top) / rect.height) * 560;
+        const targetLine = localY < 280 ? 0 : 1;
+        const { cursorPositions } = createBalloonLayout();
+        const candidates = cursorPositions.filter((position) => position && position.line === targetLine);
+        const nearest = (candidates.length ? candidates : cursorPositions).reduce((best, position) =>
+          Math.abs(position.x - localX) < Math.abs(best.x - localX) ? position : best,
+        );
+        balloonCursorIndex = nearest.index;
+        balloonCursorLine = nearest.line;
+        positionBalloonCursor();
+      }
+
+      function syncBalloonInputValue() {
+        balloonInputValue = balloonGlyphs.map((glyph) => glyph.character).join("");
+      }
+
+      function normalizeBalloonCursorLine(preferredLine = balloonCursorLine) {
+        const { cursorPositions } = createBalloonLayout();
+        const matches = cursorPositions.filter((position) => position.index === balloonCursorIndex);
+        balloonCursorLine = matches.find((position) => position.line === preferredLine)?.line
+          ?? matches.at(-1)?.line
+          ?? 0;
+      }
+
+      function updateKeyboardValue() {
+        renderBalloonContent();
+        renderPreviewLetters();
+        keyboardValue.textContent = balloonInputValue || "空";
+        eggKeyboard.setAttribute("aria-label", `气球字体输入键盘，当前内容：${balloonInputValue || "空"}`);
+        window.dispatchEvent(new CustomEvent("toybox:balloon-input", { detail: { value: balloonInputValue } }));
+      }
+
+      function applyKeyboardSide(side) {
+        keyboardSide = side;
+        eggKeyboard.dataset.side = side;
+        const keyboardOffset = side === "right" ? 704 : 0;
+
+        keyboardKeyLayer.querySelectorAll(".keyboard-key").forEach((button) => {
+          const isShiftButton = button.dataset.action === "shift";
+          const baseX = Number(button.dataset.baseX);
+          const targetX = isShiftButton ? (side === "right" ? 746 : 1718) : baseX + keyboardOffset;
+          button.style.left = `${(targetX / 2560) * 100}%`;
+          if (isShiftButton) {
+            button.ariaLabel = side === "right" ? "键盘移到左侧" : "键盘移到右侧";
+          }
+        });
+
+        window.dispatchEvent(new CustomEvent("toybox:keyboard-side", { detail: { side } }));
+      }
+
+      function shiftEggKeyboard() {
+        if (keyboardShifting) return;
+        keyboardShifting = true;
+        applyKeyboardSide(keyboardSide === "left" ? "right" : "left");
+        setTimeout(() => {
+          keyboardShifting = false;
+        }, 320);
+      }
+
+      function closeEggKeyboard(restoreFocus = true) {
+        keyboardOpen = false;
+        keyboardShifting = false;
+        clearTimeout(keyboardCloseTimer);
+        eggKeyboard.dataset.active = "false";
+        eggKeyboard.setAttribute("aria-hidden", "true");
+        keyboardKeyLayer.querySelectorAll("button").forEach((button) => {
+          button.tabIndex = -1;
+        });
+        keyboardCloseTimer = setTimeout(() => {
+          if (!keyboardOpen) eggView.dataset.keyboard = "false";
+        }, 240);
+        if (restoreFocus && currentView === "egg") {
+          document.querySelector('[data-action="balloon-input"]').focus({ preventScroll: true });
+        }
+      }
+
+      function openEggKeyboard(pointerEvent) {
+        if (previewRunning) return;
+        clearTimeout(keyboardCloseTimer);
+        if (pointerEvent?.detail && Number.isFinite(pointerEvent.clientX)) {
+          setBalloonCursorFromPoint(pointerEvent.clientX, pointerEvent.clientY, balloonStage);
+        }
+        keyboardOpen = true;
+        eggView.dataset.keyboard = "true";
+        eggKeyboard.dataset.active = "true";
+        eggKeyboard.setAttribute("aria-hidden", "false");
+        keyboardKeyLayer.querySelectorAll("button").forEach((button) => {
+          button.tabIndex = 0;
+        });
+        requestAnimationFrame(() => {
+          keyboardKeyLayer.querySelector('[data-key="W"]')?.focus({ preventScroll: true });
+        });
+      }
+
+      function handleKeyboardKey(button) {
+        pulseKeyboardKey(button);
+        const { action, key } = button.dataset;
+        if (key) {
+          if (!balloonAssetMap[key]) return;
+          const currentLetterCount = balloonGlyphs.reduce(
+            (count, glyph) => count + (balloonAssetMap[glyph.character] ? 1 : 0),
+            0,
+          );
+          if (currentLetterCount < balloonMaxLetters && balloonGlyphs.length < balloonMaxGlyphs) {
+            balloonGlyphs.splice(balloonCursorIndex, 0, {
+              id: `balloon-glyph-${nextBalloonGlyphId++}`,
+              character: key,
+              variant: Math.floor(Math.random() * balloonAssetMap[key].length),
+            });
+            balloonCursorIndex += 1;
+            normalizeBalloonCursorLine();
+            syncBalloonInputValue();
+          }
+          updateKeyboardValue();
+          return;
+        }
+        if (action === "backspace") {
+          if (balloonCursorIndex > 0) {
+            const preferredLine = balloonCursorLine;
+            balloonGlyphs.splice(balloonCursorIndex - 1, 1);
+            balloonCursorIndex -= 1;
+            normalizeBalloonCursorLine(preferredLine);
+            syncBalloonInputValue();
+          }
+          updateKeyboardValue();
+          return;
+        }
+        if (action === "space") {
+          if (balloonGlyphs.length < balloonMaxGlyphs) {
+            balloonGlyphs.splice(balloonCursorIndex, 0, {
+              id: `balloon-glyph-${nextBalloonGlyphId++}`,
+              character: " ",
+              variant: null,
+            });
+            balloonCursorIndex += 1;
+            normalizeBalloonCursorLine();
+            syncBalloonInputValue();
+          }
+          updateKeyboardValue();
+          return;
+        }
+        if (action === "shift") {
+          shiftEggKeyboard();
+          return;
+        }
+        if (["dismiss", "enter", "confirm"].includes(action)) closeEggKeyboard();
+      }
+
+      keyboardLayout.forEach((definition) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "keyboard-key";
+        button.ariaLabel = definition.label;
+        button.tabIndex = -1;
+        if (definition.key) button.dataset.key = definition.key;
+        if (definition.action) button.dataset.action = definition.action;
+        button.dataset.baseX = String(definition.x);
+        setLogicalFrame(button, definition);
+        button.addEventListener("click", () => handleKeyboardKey(button));
+        keyboardKeyLayer.append(button);
+      });
+
+      applyKeyboardSide("left");
+
+      updateKeyboardValue();
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.dataset.visible = "true";
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          toast.dataset.visible = "false";
+        }, 1800);
+      }
+
+      function createConfettiBurst(layer = celebrationLayer, pieceCount = 26, ambient = false) {
+        const colors = ["#ffb11a", "#ff6a3d", "#ffe942", "#48d9d2", "#43a9ff", "#7857ff", "#ff5dad"];
+        const screenWidth = document.querySelector(".car-screen").getBoundingClientRect().width;
+        const scale = screenWidth / 2560;
+
+        if (!ambient) layer.replaceChildren();
+        layer.dataset.active = "true";
+
+        for (let index = 0; index < pieceCount; index += 1) {
+          const piece = document.createElement("i");
+          const originX = 7 + Math.random() * 86;
+          const outwardBias = (originX - 50) * 1.25;
+          const pushX = (outwardBias + (Math.random() - 0.5) * 260) * scale;
+          const riseY = -(ambient ? 210 + Math.random() * 260 : 330 + Math.random() * 370) * scale;
+          const spreadDirection = Math.sign(pushX) || (Math.random() > 0.5 ? 1 : -1);
+          const fadeX = pushX + spreadDirection * (65 + Math.random() * 150) * scale;
+          const fadeY = riseY - (ambient ? 65 + Math.random() * 110 : 100 + Math.random() * 190) * scale;
+          const isRibbon = index % 3 !== 0;
+          const width = (ambient ? 10 + Math.random() * 13 : isRibbon ? 26 + Math.random() * 24 : 16 + Math.random() * 15) * scale;
+          const height = (ambient ? 4 + Math.random() * 7 : isRibbon ? 8 + Math.random() * 8 : 15 + Math.random() * 15) * scale;
+          const spin = (Math.random() > 0.5 ? 1 : -1) * (420 + Math.random() * 620);
+          const flightTime = ambient ? 1.6 + Math.random() * 0.7 : 1.55 + Math.random() * 0.65;
+          const launchDelay = Math.random() * 0.22;
+
+          piece.className = `burst-confetti${ambient ? " burst-confetti--ambient" : ""}`;
+          piece.style.setProperty("--origin-x", `${originX}%`);
+          piece.style.setProperty("--push-x", `${pushX}px`);
+          piece.style.setProperty("--fade-x", `${fadeX}px`);
+          piece.style.setProperty("--rise-y", `${riseY}px`);
+          piece.style.setProperty("--fade-y", `${fadeY}px`);
+          piece.style.setProperty("--piece-w", `${Math.max(2, width)}px`);
+          piece.style.setProperty("--piece-h", `${Math.max(2, height)}px`);
+          piece.style.setProperty("--piece-radius", isRibbon ? "999px" : "2px");
+          piece.style.setProperty("--piece-color", colors[index % colors.length]);
+          piece.style.setProperty("--spin", `${spin}deg`);
+          piece.style.setProperty("--spin-end", `${spin * 1.55}deg`);
+          piece.style.setProperty("--flight-time", `${flightTime}s`);
+          piece.style.setProperty("--launch-delay", `${launchDelay}s`);
+          piece.addEventListener("animationend", () => {
+            piece.remove();
+            if (!layer.childElementCount) layer.dataset.active = "false";
+          });
+          layer.append(piece);
+        }
+      }
+
+      function schedulePreview(callback, delay) {
+        const timer = setTimeout(callback, delay);
+        previewTimers.push(timer);
+      }
+
+      function setEggControlsEnabled(enabled) {
+        document.querySelectorAll(".view--egg > button").forEach((button) => {
+          button.tabIndex = enabled ? 0 : -1;
+        });
+      }
+
+      function stopPreviewSequence() {
+        previewRunning = false;
+        previewComplete = false;
+        previewTimers.forEach(clearTimeout);
+        previewTimers = [];
+        clearInterval(previewAmbientTimer);
+        previewAmbientTimer = undefined;
+        previewCelebrationLayer.replaceChildren();
+        previewSequence.dataset.active = "false";
+        previewSequence.dataset.letters = "false";
+        previewSequence.dataset.complete = "false";
+        previewSequence.setAttribute("aria-hidden", "true");
+        if (currentView === "egg") setEggControlsEnabled(true);
+      }
+
+      function startPreviewSequence() {
+        if (keyboardOpen) closeEggKeyboard(false);
+        stopPreviewSequence();
+        renderPreviewLetters();
+        previewRunning = true;
+        setEggControlsEnabled(false);
+        previewSequence.dataset.active = "true";
+        previewSequence.setAttribute("aria-hidden", "false");
+
+        schedulePreview(() => createConfettiBurst(previewCelebrationLayer, 26), 1740);
+        schedulePreview(() => {
+          previewSequence.dataset.letters = "true";
+        }, 3920);
+        schedulePreview(() => {
+          createConfettiBurst(previewCelebrationLayer, 3, true);
+          previewAmbientTimer = setInterval(() => {
+            if (previewRunning) createConfettiBurst(previewCelebrationLayer, 2 + Math.floor(Math.random() * 2), true);
+          }, 980);
+        }, 6020);
+        schedulePreview(() => {
+          previewComplete = true;
+          previewSequence.dataset.complete = "true";
+        }, 6200);
+      }
+
+      function renderRoute() {
+        const requestedView = location.hash.replace(/^#\//, "").split(/[?#]/)[0];
+        currentView = ["pet", "egg"].includes(requestedView) ? requestedView : "home";
+        if (currentView !== "egg" && previewRunning) stopPreviewSequence();
+        if (currentView !== "egg" && keyboardOpen) closeEggKeyboard(false);
+        views.forEach((view) => {
+          const isActive = view.dataset.view === currentView;
+          view.dataset.active = String(isActive);
+          view.setAttribute("aria-hidden", String(!isActive));
+          view.querySelectorAll(":scope > button").forEach((button) => {
+            button.tabIndex = isActive ? 0 : -1;
+          });
+        });
+        keyboardKeyLayer.querySelectorAll("button").forEach((button) => {
+          button.tabIndex = currentView === "egg" && keyboardOpen ? 0 : -1;
+        });
+        if (currentView === "home") activeIndex = -1;
+      }
+
+      function goTo(route) {
+        location.hash = route ? `#/${route}` : "#/";
+        renderRoute();
+        requestAnimationFrame(() => {
+          if (route === "egg") {
+            document.querySelector('[data-action="back"]').focus({ preventScroll: true });
+          } else if (route === "pet") {
+            document.querySelector('[data-action="pet-back"]').focus({ preventScroll: true });
+          } else {
+            setActive(1);
+          }
+        });
+        window.dispatchEvent(new CustomEvent("toybox:navigate", { detail: { route } }));
+      }
+
+      function setActive(index, shouldFocus = true) {
+        activeIndex = (index + entries.length) % entries.length;
+        entries.forEach((entry, entryIndex) => {
+          entry.dataset.active = String(entryIndex === activeIndex);
+        });
+        if (shouldFocus) entries[activeIndex].focus({ preventScroll: true });
+      }
+
+      function openRoute(entry) {
+        const route = entry.dataset.route;
+        const label = labels[route];
+        if (["pet", "egg"].includes(route)) {
+          goTo(route);
+          return;
+        }
+        showToast(`${label} · 下一级页面待接入`);
+        history.replaceState({ route }, "", `#/${route}`);
+        window.dispatchEvent(new CustomEvent("toybox:navigate", { detail: { route, label } }));
+      }
+
+      function activateEntry(entry) {
+        if (entryLocked) return;
+        entryLocked = true;
+        entry.dataset.pressed = "false";
+        void entry.offsetWidth;
+        entry.dataset.pressed = "true";
+        setTimeout(() => {
+          openRoute(entry);
+        }, 90);
+        setTimeout(() => {
+          entry.dataset.pressed = "false";
+          entryLocked = false;
+        }, 300);
+      }
+
+      entries.forEach((entry, index) => {
+        entry.addEventListener("focus", () => setActive(index, false));
+        entry.addEventListener("click", () => activateEntry(entry));
+      });
+
+      document.querySelector('[data-action="back"]').addEventListener("click", () => goTo(""));
+      document.querySelector('[data-action="pet-back"]').addEventListener("click", () => goTo(""));
+      document.querySelector('[data-action="pet-info"]').addEventListener("click", () => {
+        showToast("萌宠说明 · 内容待接入");
+      });
+      document.querySelector('[data-action="info"]').addEventListener("click", () => {
+        showToast("全屏彩蛋说明 · 内容待接入");
+      });
+      document.querySelector('[data-action="preview"]').addEventListener("click", () => {
+        startPreviewSequence();
+      });
+      document.querySelector('[data-action="balloon-input"]').addEventListener("click", (event) => {
+        openEggKeyboard(event);
+      });
+      keyboardEditorStage.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        setBalloonCursorFromPoint(event.clientX, event.clientY);
+      });
+      carScreen.addEventListener(
+        "pointerdown",
+        (event) => {
+          if (!keyboardOpen) return;
+          if (event.target.closest(".keyboard-editor-stage")) return;
+          const screenRect = carScreen.getBoundingClientRect();
+          const logicalY = ((event.clientY - screenRect.top) / screenRect.height) * 1440;
+          const isInsideKeyboardPanel = logicalY >= 864 && logicalY <= 1296;
+          if (!isInsideKeyboardPanel) closeEggKeyboard(false);
+        },
+        true,
+      );
+      previewSequence.addEventListener("click", () => {
+        if (!previewComplete) return;
+        stopPreviewSequence();
+        document.querySelector('[data-action="preview"]').focus({ preventScroll: true });
+      });
+
+      window.addEventListener("hashchange", renderRoute);
+
+      document.addEventListener("keydown", (event) => {
+        if (currentView === "home" && ["ArrowLeft", "ArrowRight"].includes(event.key)) {
+          event.preventDefault();
+          const direction = event.key === "ArrowRight" ? 1 : -1;
+          const nextIndex = activeIndex < 0 ? (direction > 0 ? 0 : entries.length - 1) : activeIndex + direction;
+          setActive(nextIndex);
+        }
+        if (currentView === "home" && (event.key === "Enter" || event.key === " ") && activeIndex >= 0) {
+          event.preventDefault();
+          activateEntry(entries[activeIndex]);
+        }
+        if (currentView === "egg" && keyboardOpen) {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            closeEggKeyboard();
+            return;
+          }
+          if (event.key === "Backspace") {
+            event.preventDefault();
+            handleKeyboardKey(keyboardKeyLayer.querySelector('[data-action="backspace"]'));
+            return;
+          }
+          if (/^[a-z]$/i.test(event.key) && !event.metaKey && !event.ctrlKey && !event.altKey) {
+            const matchingKey = keyboardKeyLayer.querySelector(`[data-key="${event.key.toUpperCase()}"]`);
+            if (matchingKey) {
+              event.preventDefault();
+              handleKeyboardKey(matchingKey);
+            }
+            return;
+          }
+          if (event.key === " ") {
+            event.preventDefault();
+            handleKeyboardKey(keyboardKeyLayer.querySelector('[data-action="space"]'));
+            return;
+          }
+          if (event.key === "Enter" && !event.target.closest(".keyboard-key")) {
+            event.preventDefault();
+            closeEggKeyboard();
+            return;
+          }
+        }
+        if (currentView === "egg" && ["Escape", "Backspace"].includes(event.key)) {
+          event.preventDefault();
+          if (previewRunning) {
+            stopPreviewSequence();
+            document.querySelector('[data-action="preview"]').focus({ preventScroll: true });
+          } else {
+            goTo("");
+          }
+        }
+        if (currentView === "pet" && ["Escape", "Backspace"].includes(event.key)) {
+          event.preventDefault();
+          goTo("");
+        }
+        if (event.key.toLowerCase() === "f") {
+          document.fullscreenElement
+            ? document.exitFullscreen?.()
+            : document.querySelector(".car-screen").requestFullscreen?.();
+        }
+      });
+
+      renderRoute();
+    </script>
+  </body>
+</html>
